@@ -1,6 +1,5 @@
-import asyncio
 import os
-import logging
+import asyncio
 
 from binance_sdk_spot.spot import (
     Spot,
@@ -8,9 +7,10 @@ from binance_sdk_spot.spot import (
     ConfigurationWebSocketStreams,
 )
 
+from coinflow.db.sqlite import save_ticker
+from coinflow.core.logger import setup_logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logger = setup_logger()
 
 # Create configuration for the WebSocket Streams
 configuration_ws_streams = ConfigurationWebSocketStreams(
@@ -50,7 +50,8 @@ def handle_message(data):
         'total_number_of_trades': d['n'],       # INT: total number of trades in the period
     }
     
-    print(result)
+    save_ticker(result)
+    logger.info("Data was successfully saved in the database.")
 
 async def ticker():
     connection = None
@@ -66,11 +67,7 @@ async def ticker():
         await asyncio.sleep(5)
         await stream.unsubscribe()
     except Exception as e:
-        logging.error(f"ticker() error: {e}")
+        logger.error(f"ticker() error: {e}")
     finally:
         if connection:
             await connection.close_connection(close_session=True)
-
-
-if __name__ == "__main__":
-    asyncio.run(ticker())
